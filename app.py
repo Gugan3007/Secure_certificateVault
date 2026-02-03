@@ -1944,11 +1944,12 @@ def mfa_setup():
 
 
 @app.route('/mfa/verify', methods=['POST'])
-@otp_verified_required
+@login_required
 def mfa_verify():
     """
     MFA Verify - Verify TOTP code and enable MFA
     Called after user scans QR code and enters code from authenticator app
+    Uses @login_required (not @otp_verified_required) because user is setting up MFA for first time
     """
     user = get_user_by_id(session['user_id'])
     if not user:
