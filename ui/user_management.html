@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Certificate Authority Admin</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .status-pending_approval { background-color: #ffc107; color: #212529; }
+        .status-active { background-color: #28a745; color: white; }
+        .status-rejected { background-color: #dc3545; color: white; }
+        .status-inactive { background-color: #6c757d; color: white; }
+        .status-deleted { background-color: #343a40; color: white; }
+        
+        .role-admin { background-color: #6f42c1; color: white; }
+        .role-verifier { background-color: #17a2b8; color: white; }
+        .role-applicant { background-color: #20c997; color: white; }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .pending-section {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .pending-section h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .user-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .user-info {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .user-info h4 {
+            margin: 0 0 5px 0;
+        }
+        
+        .user-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <span style="color: white; margin-right: 1rem;">👤 {{ session_data.email }} (Admin)</span>
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/admin-approvals">Approvals</a></li>
+            <li><a href="/admin/user-management" class="active">User Management</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>👥 User Management</h2>
+            <p class="text-muted">Manage users, approve pending verifier registrations, and create new accounts.</p>
+
+            {% if error %}
+                <div class="error-box" style="margin-bottom: 1rem;">❌ {{ error }}</div>
+            {% endif %}
+
+            <!-- Statistics -->
+            <div class="grid-4 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: #ffc107; margin: 0;">{{ pending_verifiers }}</h4>
+                        <p class="text-muted">⏳ Pending Verifiers</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: #17a2b8; margin: 0;">{{ active_verifiers }}</h4>
+                        <p class="text-muted">✅ Active Verifiers</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: #20c997; margin: 0;">{{ active_applicants }}</h4>
+                        <p class="text-muted">👤 Active Applicants</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: #6c757d; margin: 0;">{{ total_users }}</h4>
+                        <p class="text-muted">📊 Total Users</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Verifier Approvals Section -->
+            {% set pending_users = [] %}
+            {% for user in users %}
+                {% if user.status == 'pending_approval' %}
+                    {% set _ = pending_users.append(user) %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if pending_verifiers > 0 %}
+            <div class="pending-section">
+                <h3>⏳ Pending Verifier Approvals ({{ pending_verifiers }})</h3>
+                <p>These verifiers are waiting for your approval before they can access the system.</p>
+                
+                {% for user in users %}
+                {% if user.status == 'pending_approval' %}
+                <div class="user-card" style="background: white;">
+                    <div class="user-info">
+                        <h4>{{ user.full_name }}</h4>
+                        <p>📧 {{ user.email }}</p>
+                        <p>📅 Registered: {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="approveVerifier('{{ user._id }}')" class="btn btn-success btn-small">✓ Approve</button>
+                        <button onclick="openRejectModal('{{ user._id }}', '{{ user.email }}')" class="btn btn-danger btn-small">✗ Reject</button>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Create New User Button -->
+            <div style="margin-bottom: 1.5rem;">
+                <button onclick="openCreateModal()" class="btn btn-primary">➕ Create New User</button>
+            </div>
+
+            <!-- All Users Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0;">All Users</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                {% if user.status != 'deleted' %}
+                                <tr>
+                                    <td>{{ user.full_name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        <span class="badge role-{{ user.role }}">{{ user.role }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge status-{{ user.status }}">{{ user.status.replace('_', ' ') }}</span>
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            {% if user.role != 'admin' %}
+                                                {% if user.status == 'pending_approval' %}
+                                                    <button onclick="approveVerifier('{{ user._id }}')" class="btn btn-success btn-small">✓</button>
+                                                    <button onclick="openRejectModal('{{ user._id }}', '{{ user.email }}')" class="btn btn-danger btn-small">✗</button>
+                                                {% else %}
+                                                    <button onclick="openEditModal('{{ user._id }}', '{{ user.full_name }}', '{{ user.email }}', '{{ user.role }}', '{{ user.status }}')" class="btn btn-info btn-small">✏️ Edit</button>
+                                                    <button onclick="deleteUser('{{ user._id }}', '{{ user.email }}')" class="btn btn-danger btn-small">🗑️</button>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Protected</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #dc3545;">❌ Reject Verifier</h3>
+                <button class="close-btn" onclick="closeRejectModal()">&times;</button>
+            </div>
+            <p>Rejecting: <strong id="rejectUserEmail"></strong></p>
+            <div class="form-group">
+                <label for="rejectReason">Rejection Reason <span style="color: red;">*</span></label>
+                <textarea id="rejectReason" rows="3" placeholder="Provide a reason for rejection..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem;">
+                <button onclick="closeRejectModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitRejection()" class="btn btn-danger">Reject Verifier</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #28a745;">➕ Create New User</h3>
+                <button class="close-btn" onclick="closeCreateModal()">&times;</button>
+            </div>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="createName">Full Name <span style="color: red;">*</span></label>
+                    <input type="text" id="createName" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="createEmail">Email <span style="color: red;">*</span></label>
+                    <input type="email" id="createEmail" required placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="createRole">Role <span style="color: red;">*</span></label>
+                    <select id="createRole" required>
+                        <option value="applicant">Applicant</option>
+                        <option value="verifier">Verifier</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createPassword">Password <span style="color: red;">*</span></label>
+                    <input type="password" id="createPassword" required placeholder="Min 12 characters (NIST compliant)">
+                    <small style="color: #666;">Must follow NIST SP 800-63B guidelines</small>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" onclick="closeCreateModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #17a2b8;">✏️ Edit User</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <p>Editing: <strong id="editUserEmail"></strong></p>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label for="editName">Full Name</label>
+                    <input type="text" id="editName" placeholder="Leave blank to keep current">
+                </div>
+                <div class="form-group">
+                    <label for="editRole">Role</label>
+                    <select id="editRole">
+                        <option value="">-- Keep Current --</option>
+                        <option value="applicant">Applicant</option>
+                        <option value="verifier">Verifier</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Status</label>
+                    <select id="editStatus">
+                        <option value="">-- Keep Current --</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editPassword">New Password (optional)</label>
+                    <input type="password" id="editPassword" placeholder="Leave blank to keep current">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentRejectUserId = null;
+
+        // Approve Verifier
+        function approveVerifier(userId) {
+            if (confirm('Are you sure you want to APPROVE this verifier?\n\nThey will be able to log in and verify certificate requests.')) {
+                fetch(`/admin/approve-verifier/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + data.error);
+                    }
+                })
+                .catch(error => alert('❌ Error: ' + error.message));
+            }
+        }
+
+        // Reject Modal Functions
+        function openRejectModal(userId, email) {
+            currentRejectUserId = userId;
+            document.getElementById('rejectUserEmail').textContent = email;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+            currentRejectUserId = null;
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+
+            fetch(`/admin/reject-verifier/${currentRejectUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    closeRejectModal();
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => alert('❌ Error: ' + error.message));
+        }
+
+        // Create Modal Functions
+        function openCreateModal() {
+            document.getElementById('createUserForm').reset();
+            document.getElementById('createModal').style.display = 'flex';
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+        }
+
+        document.getElementById('createUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const data = {
+                full_name: document.getElementById('createName').value,
+                email: document.getElementById('createEmail').value,
+                role: document.getElementById('createRole').value,
+                password: document.getElementById('createPassword').value
+            };
+
+            fetch('/admin/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    closeCreateModal();
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => alert('❌ Error: ' + error.message));
+        });
+
+        // Edit Modal Functions
+        function openEditModal(userId, name, email, role, status) {
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUserEmail').textContent = email;
+            document.getElementById('editName').value = '';
+            document.getElementById('editRole').value = '';
+            document.getElementById('editStatus').value = '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        document.getElementById('editUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('editUserId').value;
+            const data = {};
+            
+            if (document.getElementById('editName').value) data.full_name = document.getElementById('editName').value;
+            if (document.getElementById('editRole').value) data.role = document.getElementById('editRole').value;
+            if (document.getElementById('editStatus').value) data.status = document.getElementById('editStatus').value;
+            if (document.getElementById('editPassword').value) data.password = document.getElementById('editPassword').value;
+
+            if (Object.keys(data).length === 0) {
+                alert('Please provide at least one field to update');
+                return;
+            }
+
+            fetch(`/admin/edit-user/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    closeEditModal();
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => alert('❌ Error: ' + error.message));
+        });
+
+        // Delete User
+        function deleteUser(userId, email) {
+            if (confirm(`Are you sure you want to DELETE user: ${email}?\n\nThis action cannot be undone.`)) {
+                fetch(`/admin/delete-user/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + data.error);
+                    }
+                })
+                .catch(error => alert('❌ Error: ' + error.message));
+            }
+        }
+
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

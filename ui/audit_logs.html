@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs - Secure Certificate Authority</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .audit-status-success { color: var(--success-color); font-weight: 600; }
+        .audit-status-failure { color: var(--danger-color); font-weight: 600; }
+        .audit-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .audit-stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; text-align: center; }
+        .audit-stat-number { font-size: 2rem; font-weight: 700; color: var(--secondary-teal); margin: 0.5rem 0; }
+        .audit-stat-label { color: var(--text-muted); font-size: 0.9rem; }
+        .filter-section { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .filter-row:last-child { margin-bottom: 0; }
+        .log-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .log-table thead { background: var(--secondary-teal); color: white; }
+        .log-table th { padding: 1rem; text-align: left; font-weight: 600; }
+        .log-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .log-table tbody tr:hover { background: var(--hover-bg); }
+        .log-action { font-weight: 500; }
+        .log-user { font-family: monospace; font-size: 0.9rem; }
+        .log-ip { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); }
+        .no-logs { text-align: center; padding: 2rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+                <p style="margin: 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Admin - Audit Logs</p>
+            </div>
+            <div class="text-right">
+                <span style="color: white; margin-right: 2rem;">👤 {{ session_data.get('email', 'Unknown') }} (Admin)</span>
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/admin-approvals">Approvals</a></li>
+            <li><a href="/admin/user-management">User Management</a></li>
+            <li><a href="/audit-logs" class="active">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>System Audit Logs 📋</h2>
+            <p class="text-muted">Complete audit trail of all system activities, user actions, and certificate operations for compliance, accountability, and forensic tracking.</p>
+
+            {% if error %}
+            <div class="alert alert-danger">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Statistics Cards -->
+            {% if action_stats and action_stats|length > 0 %}
+            <div class="audit-stats">
+                {% for stat in action_stats[:4] %}
+                <div class="audit-stat-card">
+                    <div class="audit-stat-label">{{ stat['_id'] if stat['_id'] else 'Unknown Action' }}</div>
+                    <div class="audit-stat-number">{{ stat['count'] if stat['count'] is defined else 0 }}</div>
+                    <div style="font-size: 0.8rem; color: var(--success-color);">✓ {{ stat['successes'] if stat['successes'] is defined else 0 }} successful</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Filter Section -->
+            <form method="GET" class="filter-section">
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label for="action">Filter by Action</label>
+                        <select id="action" name="action" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="">All Actions</option>
+                            <option value="login_success" {% if current_filters.action == 'login_success' %}selected{% endif %}>Login Success</option>
+                            <option value="login_failed" {% if current_filters.action == 'login_failed' %}selected{% endif %}>Login Failed</option>
+                            <option value="logout" {% if current_filters.action == 'logout' %}selected{% endif %}>Logout</option>
+                            <option value="otp_verified" {% if current_filters.action == 'otp_verified' %}selected{% endif %}>OTP Verified</option>
+                            <option value="certificate_requested" {% if current_filters.action == 'certificate_requested' %}selected{% endif %}>Certificate Requested</option>
+                            <option value="certificate_verified" {% if current_filters.action == 'certificate_verified' %}selected{% endif %}>Certificate Verified</option>
+                            <option value="certificate_approved" {% if current_filters.action == 'certificate_approved' %}selected{% endif %}>Certificate Approved</option>
+                            <option value="certificate_viewed" {% if current_filters.action == 'certificate_viewed' %}selected{% endif %}>Certificate Viewed</option>
+                            <option value="certificate_downloaded" {% if current_filters.action == 'certificate_downloaded' %}selected{% endif %}>Certificate Downloaded</option>
+                            <option value="unauthorized_certificate_access" {% if current_filters.action == 'unauthorized_certificate_access' %}selected{% endif %}>Unauthorized Access</option>
+                            <option value="viewed_audit_logs" {% if current_filters.action == 'viewed_audit_logs' %}selected{% endif %}>Audit Logs Viewed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="limit">Records per page</label>
+                        <select id="limit" name="limit" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="25" {% if request.args.get('limit', '100') == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if request.args.get('limit', '100') == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if request.args.get('limit', '100') == '100' %}selected{% endif %}>100</option>
+                            <option value="250" {% if request.args.get('limit', '100') == '250' %}selected{% endif %}>250</option>
+                        </select>
+                    </div>
+                    <div style="align-self: flex-end;">
+                        <button type="submit" class="btn btn-secondary" style="margin-right: 0.5rem;">🔍 Filter</button>
+                        <a href="/audit-logs" class="btn btn-outline">Reset</a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Audit Log Table -->
+            {% if logs %}
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Resource</th>
+                        <th>Status</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><strong>{{ log.timestamp }}</strong></td>
+                        <td class="log-user">
+                            {% if log.user_email %}
+                                <div>{{ log.user_email }}</div>
+                                <small style="color: var(--text-muted);">{{ log.user_name }}</small>
+                            {% else %}
+                                <span style="color: var(--text-muted);">System</span>
+                            {% endif %}
+                        </td>
+                        <td class="log-action">
+                            {% set action_icons = {
+                                'login_success': '✓ Login',
+                                'login_failed': '✗ Login Failed',
+                                'logout': '→ Logout',
+                                'otp_verified': '🔑 OTP Verified',
+                                'certificate_requested': '📄 Requested',
+                                'certificate_verified': '✓ Verified',
+                                'certificate_approved': '✓ Approved',
+                                'certificate_viewed': '👁 Viewed',
+                                'certificate_downloaded': '⬇ Downloaded',
+                                'unauthorized_certificate_access': '🚫 Unauthorized',
+                                'viewed_audit_logs': '📋 Audit Logs',
+                                'certificate_access_blocked_no_signature': '🔒 No Signature',
+                                'certificate_access_blocked_invalid_signature': '🔒 Invalid Signature',
+                                'certificate_download_blocked_no_signature': '🔒 No Signature',
+                                'certificate_download_blocked_invalid_signature': '🔒 Invalid Signature'
+                            } %}
+                            {{ action_icons.get(log.action, log.action) }}
+                        </td>
+                        <td><code style="background: #f0f0f0; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85rem;">{{ log.resource or 'N/A' }}</code></td>
+                        <td>
+                            {% if log.status == 'success' %}
+                                <span class="audit-status-success">✓ Success</span>
+                            {% elif log.status == 'failure' %}
+                                <span class="audit-status-failure">✗ Failure</span>
+                            {% else %}
+                                <span>{{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="log-ip">{{ log.ip_address }}</td>
+                        <td style="font-size: 0.9rem; max-width: 300px;">
+                            {% if log.details %}
+                                <details>
+                                    <summary>View Details</summary>
+                                    <pre style="background: #f5f5f5; padding: 0.5rem; border-radius: 3px; overflow: auto; max-height: 150px;">{{ log.details }}</pre>
+                                </details>
+                            {% else %}
+                                <span style="color: var(--text-muted);">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-logs">
+                <p><strong>No audit logs found</strong></p>
+                <p class="text-muted">Try adjusting your filters or check back later.</p>
+            </div>
+            {% endif %}
+
+            <!-- Information Box -->
+            <div class="info-box mt-4" style="background: #f8f9fa; border-left: 4px solid var(--secondary-teal); padding: 1rem;">
+                <strong>📋 Audit Log Information:</strong>
+                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
+                    <li><strong>Purpose:</strong> Track all system activities for security, compliance, and accountability</li>
+                    <li><strong>Scope:</strong> User authentication, certificate operations, administrative actions, and access control decisions</li>
+                    <li><strong>Retention:</strong> Logs are retained for minimum 7 years for regulatory compliance (PCI DSS, HIPAA, SOX)</li>
+                    <li><strong>Non-repudiation:</strong> Timestamps and user information prove who did what and when</li>
+                    <li><strong>Security:</strong> Admin-only access. All audit log accesses are themselves logged</li>
+                </ul>
+            </div>
+
+            <!-- Pagination Info -->
+            <div class="text-center mt-4" style="color: var(--text-muted); font-size: 0.9rem;">
+                <p>Displaying {{ logs|length }} records | <a href="#" style="color: var(--secondary-teal);">Export as CSV</a></p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority - Phase 8: Audit Logging 🔍 All rights reserved.</p>
+    </footer>
+</body>
+</html>

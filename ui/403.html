@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 - Forbidden</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .error-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 6em;
+            font-weight: bold;
+            color: #dc3545;
+            margin: 20px 0;
+        }
+
+        .error-title {
+            font-size: 2.5em;
+            color: #1e3a5f;
+            margin: 10px 0;
+        }
+
+        .error-message {
+            font-size: 1.3em;
+            color: #555;
+            margin: 20px 0;
+            max-width: 600px;
+        }
+
+        .error-details {
+            background-color: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px 20px;
+            margin: 30px 0;
+            text-align: left;
+            display: inline-block;
+            max-width: 600px;
+        }
+
+        .error-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #1e3a5f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #152a47;
+        }
+
+        .btn-secondary {
+            background-color: #008B8B;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #006666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+                <p class="header-subtitle">Secure Certificate Request & Approval System</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="error-container">
+            <div class="error-code">403</div>
+            <div class="error-title">Access Forbidden</div>
+            <div class="error-message">
+                {{ message or 'You do not have permission to access this resource.' }}
+            </div>
+
+            <div class="error-details">
+                <h3 style="margin-top: 0; color: #1e3a5f;">🔒 Access Control Information</h3>
+                {% if user_role and required_role %}
+                <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 15px; margin: 15px 0; border-radius: 4px;">
+                    <p style="margin: 5px 0;"><strong>Your Current Role:</strong> <span style="color: #c2185b; text-transform: uppercase;">{{ user_role }}</span></p>
+                    <p style="margin: 5px 0;"><strong>Required Role:</strong> <span style="color: #2e7d32; text-transform: uppercase;">{{ required_role }}</span></p>
+                </div>
+                {% endif %}
+                
+                <h3 style="margin-top: 20px; color: #1e3a5f;">Why am I seeing this?</h3>
+                <ul style="margin: 10px 0; text-align: left;">
+                    <li>Your user role does not have permission to access this resource</li>
+                    <li>This action is restricted by role-based access control (RBAC)</li>
+                    <li>Contact an administrator if you believe this is an error</li>
+                    <li>All unauthorized access attempts are logged for security</li>
+                </ul>
+                
+                <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px 15px; margin: 15px 0; border-radius: 4px;">
+                    <p style="margin: 5px 0; font-size: 0.9em;"><strong>ℹ️ Role-Based Access:</strong></p>
+                    <p style="margin: 5px 0; font-size: 0.9em;">
+                        <strong>APPLICANT:</strong> Request certificates, view own certificates<br>
+                        <strong>VERIFIER:</strong> Verify certificate requests, validation tasks<br>
+                        <strong>ADMIN:</strong> Approve certificates, revoke, audit logs
+                    </p>
+                </div>
+            </div>
+
+            <div class="error-buttons">
+                <a href="/dashboard" class="btn btn-primary">← Back to Dashboard</a>
+                <a href="/logout" class="btn btn-secondary">Logout</a>
+            </div>
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 40px 20px; color: #999; border-top: 1px solid #eee; margin-top: 60px;">
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>

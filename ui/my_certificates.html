@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Certificates - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/certificate-types">Certificates</a></li>
+            <li><a href="/my-certificates" class="active">My Certificates</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>My Certificates</h2>
+            <p class="text-muted">View and manage all your issued and pending certificates.</p>
+
+            <!-- Filter Options -->
+            <div class="card mb-3">
+                <form method="GET" style="margin: 0;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="filter_status">Filter by Status</label>
+                            <select id="filter_status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="verified">Verified</option>
+                                <option value="approved">Approved</option>
+                                <option value="issued">Issued</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter_type">Filter by Type</label>
+                            <select id="filter_type" name="type">
+                                <option value="">All Types</option>
+                                <option value="ssl">SSL/TLS</option>
+                                <option value="code">Code Signing</option>
+                                <option value="ev">Extended Validation</option>
+                                <option value="wildcard">Wildcard</option>
+                            </select>
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <button type="submit" class="btn btn-secondary btn-small">Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Certificates Table -->
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Certificate Type</th>
+                        <th>Status</th>
+                        <th>Submitted Date</th>
+                        <th>Expiry Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if certificates %}
+                        {% for cert in certificates %}
+                        <tr>
+                            <td>{{ cert._id }}</td>
+                            <td>{{ cert.certificate_type }}</td>
+                            <td>
+                                {% if cert.status == 'pending' %}
+                                    <span class="table-status status-pending">Pending</span>
+                                {% elif cert.status == 'verified' %}
+                                    <span class="table-status status-verified">Verified</span>
+                                {% elif cert.status == 'approved' %}
+                                    <span class="table-status status-issued">Approved</span>
+                                {% elif cert.status == 'rejected' %}
+                                    <span class="table-status status-rejected">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ cert.created_at.strftime('%Y-%m-%d') if cert.created_at else 'N/A' }}</td>
+                            <td>{{ cert.expiry_date.strftime('%Y-%m-%d') if cert.expiry_date else 'Not set' }}</td>
+                            <td>
+                                <div class="table-actions">
+                                    {% if cert.status == 'approved' %}
+                                        <a href="/view-certificate/{{ cert._id | b64encode }}" class="btn btn-primary btn-small">View</a>
+                                        <a href="/download-certificate/{{ cert._id | b64encode }}" class="btn btn-secondary btn-small">Download</a>
+                                    {% else %}
+                                        <span class="text-muted">Waiting for approval</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                            <p class="text-muted">No certificates found. <a href="/request-certificate">Create a new request</a></p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            </div>
+
+            <div class="button-group right">
+                <a href="/request-certificate" class="btn btn-primary">Request New Certificate</a>
+            </div>
+
+            <!-- Certificate Status Legend -->
+            <div class="container mt-4" style="background-color: var(--light-bg); border: 1px solid var(--border-color); max-width: 100%;">
+                <h4>Certificate Status Legend</h4>
+                <div class="grid-3">
+                    <div>
+                        <p><span class="table-status status-pending">Pending</span> - Request submitted, awaiting verification</p>
+                    </div>
+                    <div>
+                        <p><span class="table-status status-verified">Verified</span> - Information verified by reviewer</p>
+                    </div>
+                    <div>
+                        <p><span class="table-status status-approved">Approved</span> - Approved by administrator</p>
+                    </div>
+                    <div>
+                        <p><span class="table-status status-issued">Issued</span> - Certificate issued and active</p>
+                    </div>
+                    <div>
+                        <p><span class="table-status status-rejected">Rejected</span> - Request rejected</p>
+                    </div>
+                    <div>
+                        <p>Expired - Certificate validity period ended</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>

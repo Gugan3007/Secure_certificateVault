@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Certificate - Secure Certificate Authority</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .certificate-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .certificate-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #008B8B;
+        }
+        .certificate-content {
+            background: #f5f5f5;
+            border: 2px solid #1e3a5f;
+            border-radius: 4px;
+            padding: 2rem;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.8;
+            color: #333;
+            overflow-x: auto;
+        }
+        .certificate-actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #008B8B;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #006666;
+        }
+        .btn-secondary {
+            background-color: #1e3a5f;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #152848;
+        }
+        .security-notice {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 4px;
+        }
+        .security-notice h3 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .decryption-status {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 4px;
+        }
+        .decryption-status.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .decryption-status h3 {
+            margin-top: 0;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #008B8B;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <nav class="nav-right">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/logout" class="nav-link">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="certificate-container">
+            <div class="certificate-header">
+                <h2>Your Certificate</h2>
+                <p style="color: #666; margin: 0.5rem 0 0 0;">Certificate ID: {{ cert_id }}</p>
+            </div>
+
+            <div id="decryption-status" class="decryption-status">
+                <h3><span class="loading-spinner"></span> Decrypting Certificate...</h3>
+                <p>Your certificate is being decrypted in your browser using AES-256-GCM.</p>
+            </div>
+
+            <div class="security-notice" style="display: none;" id="security-notice">
+                <h3>🔒 Client-Side Decryption Successful</h3>
+                <p>This certificate was decrypted using AES-256-GCM encryption <strong>in your browser</strong>. The decryption key never leaves your device. The content is confidential and should be kept secure.</p>
+            </div>
+
+            <div id="certificate-content" class="certificate-content" style="display: none;"></div>
+
+            <div class="certificate-actions">
+                <button onclick="downloadDecryptedCertificate()" class="btn btn-primary" id="download-btn" disabled>📥 Download Certificate</button>
+                <a href="/my-certificates" class="btn btn-secondary">← Back to Certificates</a>
+            </div>
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 2rem; color: #666; border-top: 1px solid #ddd; margin-top: 3rem;">
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+        <p style="font-size: 0.9rem;">This system uses CLIENT-SIDE AES-256-GCM encryption to protect your certificates.</p>
+    </footer>
+
+    <!-- Hidden data for client-side decryption -->
+    <script id="encrypted-data" type="application/json">{{ encrypted_data | safe }}</script>
+    <script id="signature-data" type="text/plain">{{ signature }}</script>
+
+    <script>
+        // ============================================
+        // CLIENT-SIDE DECRYPTION FUNCTIONS (AES-256-GCM)
+        // Using Web Crypto API
+        // ============================================
+
+        let decryptedCertificate = null;
+
+        // Convert Base64 to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Import key from base64
+        async function importKey(base64Key) {
+            const keyData = base64ToArrayBuffer(base64Key);
+            return await window.crypto.subtle.importKey(
+                "raw",
+                keyData,
+                {
+                    name: "AES-GCM",
+                    length: 256
+                },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        // Decrypt content using AES-256-GCM
+        async function decryptContent(encryptedBase64, ivBase64, key) {
+            const encryptedData = base64ToArrayBuffer(encryptedBase64);
+            const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
+            
+            const decrypted = await window.crypto.subtle.decrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                key,
+                encryptedData
+            );
+            
+            const decoder = new TextDecoder();
+            return decoder.decode(decrypted);
+        }
+
+        // Main decryption function
+        async function decryptCertificate() {
+            try {
+                console.log('🔓 CLIENT-SIDE DECRYPTION STARTING...');
+                
+                // Get encrypted data from hidden element
+                const encryptedDataStr = document.getElementById('encrypted-data').textContent.trim();
+                
+                // Parse the encrypted data (format: iv:key:encrypted)
+                const parts = encryptedDataStr.split(':');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid encrypted data format');
+                }
+                
+                const [ivBase64, keyBase64, encryptedContent] = parts;
+                
+                console.log('Step 1: Encrypted data parsed');
+                console.log('   IV length:', ivBase64.length);
+                console.log('   Key length:', keyBase64.length);
+                console.log('   Encrypted content length:', encryptedContent.length);
+
+                // Step 2: Import the AES key
+                console.log('Step 2: Importing AES-256 key...');
+                const aesKey = await importKey(keyBase64);
+                console.log('✅ AES key imported successfully');
+
+                // Step 3: Decrypt the content
+                console.log('Step 3: Decrypting with AES-256-GCM...');
+                const decryptedText = await decryptContent(encryptedContent, ivBase64, aesKey);
+                console.log('✅ Decryption successful!');
+                console.log('   Decrypted length:', decryptedText.length, 'characters');
+
+                // Store for download
+                decryptedCertificate = decryptedText;
+
+                // Update UI
+                document.getElementById('decryption-status').style.display = 'none';
+                document.getElementById('security-notice').style.display = 'block';
+                document.getElementById('certificate-content').textContent = decryptedText;
+                document.getElementById('certificate-content').style.display = 'block';
+                document.getElementById('download-btn').disabled = false;
+
+                console.log('🎉 Certificate displayed successfully!');
+
+            } catch (error) {
+                console.error('❌ Decryption error:', error);
+                document.getElementById('decryption-status').innerHTML = `
+                    <h3 style="color: #d32f2f;">❌ Decryption Failed</h3>
+                    <p>Error: ${error.message}</p>
+                    <p>Please contact support if this issue persists.</p>
+                `;
+                document.getElementById('decryption-status').style.borderLeftColor = '#d32f2f';
+                document.getElementById('decryption-status').style.background = '#ffebee';
+            }
+        }
+
+        // Download decrypted certificate
+        function downloadDecryptedCertificate() {
+            if (!decryptedCertificate) {
+                alert('Certificate not yet decrypted');
+                return;
+            }
+
+            const blob = new Blob([decryptedCertificate], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'certificate_{{ cert_id }}.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Start decryption when page loads
+        window.onload = function() {
+            setTimeout(decryptCertificate, 500); // Small delay for visual effect
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            background: linear-gradient(-45deg, #1a2332, #2c5364, #0f4c75, #3282b8);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.08) 2px, transparent 2px),
+                radial-gradient(circle at 90% 40%, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 200px 200px, 300px 300px, 250px 250px, 350px 350px;
+            animation: particleFloat 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100px); }
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+
+        footer {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container" style="max-width: 600px; margin: 2rem auto; padding: 3rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="border: none; margin: 0;">Create New Account</h2>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                        <div class="error-box" style="margin-bottom: 1rem; padding: 1rem; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px;">
+                            ❌ {{ error }}
+                        </div>
+                    {% endif %}
+                    
+                    {% if success %}
+                        <div class="success-box" style="margin-bottom: 1rem; padding: 1rem; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">
+                            ✅ {{ success }}
+                        </div>
+                    {% endif %}
+
+                    <form action="/register" method="POST">
+                        <div class="form-group">
+                            <label for="full_name">Full Name</label>
+                            <input type="text" id="full_name" name="full_name" placeholder="John Doe" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="user@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role">Select Role</label>
+                            <select id="role" name="role" required onchange="showRoleInfo()">
+                                <option value="">-- Choose a role --</option>
+                                <option value="applicant">Applicant (Request Certificates)</option>
+                                <option value="verifier">Verifier (Verify Requests)</option>
+                            </select>
+                            <small style="color: #666; font-size: 0.9em; display: block; margin-top: 5px;">
+                                Note: Administrator accounts are system-created only
+                            </small>
+                            <div id="verifierApprovalNotice" style="display: none; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px; margin-top: 10px;">
+                                <strong style="color: #856404;">⏳ Verifier Approval Required</strong>
+                                <p style="margin: 5px 0 0 0; color: #856404; font-size: 0.9em;">
+                                    Verifier registrations require admin approval. After registration, you'll need to wait for an administrator to approve your account before you can log in.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" placeholder="Create a strong password (min 12 chars)" required minlength="12">
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-top: 10px; border-left: 4px solid #667eea;">
+                                <strong style="color: #333; font-size: 0.9em;">🔐 NIST SP 800-63B Password Guidelines:</strong>
+                                <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #666; font-size: 0.85em;">
+                                    <li>Minimum <strong>12 characters</strong> required</li>
+                                    <li>Avoid common passwords (password123, qwerty, etc.)</li>
+                                    <li>Don't use your name or email in password</li>
+                                    <li>Avoid sequential patterns (123456, abcdef)</li>
+                                    <li>Spaces and special characters are allowed</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm Password</label>
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required minlength="12">
+                        </div>
+
+                        <div class="form-group">
+                            <input type="checkbox" id="terms" name="terms" required>
+                            <label for="terms" style="display: inline; margin-left: 0.5rem; font-weight: 400;">I agree to the Terms of Service</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" onclick="return validatePassword()">Register Account</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="/login">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // NIST SP 800-63B Common Breached Passwords List
+        const COMMON_PASSWORDS = [
+            'password', 'password1', 'password123', '123456', '12345678', '123456789',
+            '1234567890', 'qwerty', 'qwerty123', 'letmein', 'welcome', 'welcome1',
+            'admin', 'admin123', 'administrator', 'login', 'passw0rd', 'master',
+            'hello', 'shadow', 'sunshine', 'princess', 'dragon', 'monkey', 'abc123',
+            'football', 'baseball', 'soccer', 'hockey', 'batman', 'superman',
+            'trustno1', 'iloveyou', 'starwars', 'whatever', 'freedom', 'mustang',
+            'cheese', 'access', 'passwd', 'secret', 'test', 'test123', 'guest',
+            'changeme', 'qazwsx', 'zxcvbn', 'asdfgh', 'asdf1234', 'qwer1234',
+            '111111', '000000', '654321', '666666', '696969', '121212', '112233',
+            'password1!', 'p@ssw0rd', 'p@ssword', 'pa$$word', 'passw0rd!',
+            'certificate', 'security', 'secure123', 'admin@123', 'root', 'toor'
+        ];
+
+        // Sequential patterns to check
+        const SEQUENTIAL_PATTERNS = [
+            '123456', '234567', '345678', '456789', '567890',
+            'abcdef', 'bcdefg', 'cdefgh', 'qwerty', 'asdfgh', 'zxcvbn'
+        ];
+
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('full_name').value;
+            
+            let errors = [];
+
+            // Rule 1: Minimum length (12 characters per NIST)
+            if (password.length < 12) {
+                errors.push('🔴 Password must be at least 12 characters (NIST SP 800-63B requirement)');
+            }
+
+            // Rule 2: Maximum length
+            if (password.length > 128) {
+                errors.push('🔴 Password cannot exceed 128 characters');
+            }
+
+            // Rule 3: Check against common/breached passwords
+            if (COMMON_PASSWORDS.includes(password.toLowerCase())) {
+                errors.push('🔴 This password is too common and has been found in data breaches. Choose a unique password.');
+            }
+
+            // Rule 4: Check for repetitive characters
+            const uniqueChars = new Set(password).size;
+            if (uniqueChars < 4) {
+                errors.push('🔴 Password contains too many repetitive characters. Use more variety.');
+            }
+
+            // Rule 5: Check for sequential patterns
+            for (let pattern of SEQUENTIAL_PATTERNS) {
+                if (password.toLowerCase().includes(pattern)) {
+                    errors.push('🔴 Password contains sequential characters (like 123456 or abcdef). Avoid predictable patterns.');
+                    break;
+                }
+            }
+
+            // Rule 6: Check for email in password
+            if (email) {
+                const emailLocal = email.split('@')[0].toLowerCase();
+                if (emailLocal.length > 3 && password.toLowerCase().includes(emailLocal)) {
+                    errors.push('🔴 Password should not contain your email address');
+                }
+            }
+
+            // Rule 7: Check for name in password
+            if (fullName) {
+                const nameParts = fullName.toLowerCase().split(' ');
+                for (let part of nameParts) {
+                    if (part.length > 3 && password.toLowerCase().includes(part)) {
+                        errors.push('🔴 Password should not contain your name');
+                        break;
+                    }
+                }
+            }
+
+            // Rule 8: Passwords must match
+            if (password !== confirmPassword) {
+                errors.push('🔴 Passwords do not match');
+            }
+
+            // Show errors if any
+            if (errors.length > 0) {
+                let errorMessage = '⚠️ NIST SP 800-63B Password Validation Failed:\n\n';
+                errorMessage += errors.join('\n\n');
+                errorMessage += '\n\n📋 Password Tips:\n';
+                errorMessage += '• Use a passphrase (e.g., "MyDog$Loves2RunFast!")\n';
+                errorMessage += '• Combine random words with numbers\n';
+                errorMessage += '• Avoid personal information';
+                
+                alert(errorMessage);
+                return false;
+            }
+
+            return true;
+        }
+
+        // Real-time password strength indicator
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthIndicator = document.getElementById('password-strength');
+            
+            if (!strengthIndicator) return;
+            
+            let strength = 0;
+            let feedback = [];
+
+            if (password.length >= 12) strength += 25;
+            else feedback.push('Need 12+ characters');
+
+            if (password.length >= 16) strength += 15;
+
+            const uniqueChars = new Set(password).size;
+            if (uniqueChars >= 8) strength += 20;
+            else if (uniqueChars >= 5) strength += 10;
+
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 15;
+            if (/[0-9]/.test(password)) strength += 15;
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 10;
+
+            let strengthText = '';
+            let strengthColor = '';
+
+            if (strength < 30) {
+                strengthText = 'Weak';
+                strengthColor = '#e74c3c';
+            } else if (strength < 50) {
+                strengthText = 'Fair';
+                strengthColor = '#f39c12';
+            } else if (strength < 70) {
+                strengthText = 'Good';
+                strengthColor = '#3498db';
+            } else {
+                strengthText = 'Strong';
+                strengthColor = '#2ecc71';
+            }
+
+            strengthIndicator.innerHTML = `
+                <div style="margin-top: 8px;">
+                    <div style="background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden;">
+                        <div style="background: ${strengthColor}; width: ${strength}%; height: 100%; transition: all 0.3s;"></div>
+                    </div>
+                    <small style="color: ${strengthColor}; font-weight: 600;">Strength: ${strengthText}</small>
+                </div>
+            `;
+        });
+
+        // Check for success message from server
+        window.addEventListener('DOMContentLoaded', function() {
+            // Add strength indicator element
+            const passwordField = document.getElementById('password');
+            if (passwordField && !document.getElementById('password-strength')) {
+                const strengthDiv = document.createElement('div');
+                strengthDiv.id = 'password-strength';
+                passwordField.parentNode.appendChild(strengthDiv);
+            }
+
+            // Check if there's a success message in the page
+            const successMsg = document.querySelector('.success-box, .alert-success');
+            if (successMsg && successMsg.textContent.includes('Registration successful')) {
+                alert('✅ Registration successful! Please log in with your credentials.');
+                setTimeout(function() {
+                    window.location.href = '/login';
+                }, 500);
+            }
+        });
+
+        // Show/hide verifier approval notice based on role selection
+        function showRoleInfo() {
+            const roleSelect = document.getElementById('role');
+            const verifierNotice = document.getElementById('verifierApprovalNotice');
+            
+            if (roleSelect.value === 'verifier') {
+                verifierNotice.style.display = 'block';
+            } else {
+                verifierNotice.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

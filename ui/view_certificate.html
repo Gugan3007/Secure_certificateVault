@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Certificate - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/certificate-types">Certificates</a></li>
+            <li><a href="/my-certificates" class="active">My Certificates</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="button-group">
+                <a href="/my-certificates" class="btn btn-secondary">← Back to Certificates</a>
+            </div>
+
+            <h2>Certificate Details</h2>
+
+            <!-- Certificate Status -->
+            <div class="success-box">
+                <strong>Certificate Status:</strong> Active and Valid<br>
+                <strong>Security Status:</strong> ✅ Secure - All verifications passed
+            </div>
+
+            <!-- Certificate Information -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Certificate Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Common Name (CN):</strong> example.com</p>
+                        <p><strong>Organization:</strong> Example Corporation Inc.</p>
+                        <p><strong>Organization Unit:</strong> IT Security</p>
+                        <p><strong>Locality:</strong> San Francisco</p>
+                        <p><strong>State:</strong> California</p>
+                        <p><strong>Country:</strong> United States</p>
+                        <p><strong>Certificate Type:</strong> SSL/TLS Certificate</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Validity Period</h3>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Issued Date:</strong> January 15, 2025</p>
+                        <p><strong>Expiry Date:</strong> January 15, 2026</p>
+                        <p><strong>Days Remaining:</strong> 352 days</p>
+                        <p><strong>Status:</strong> <span class="table-status status-issued">Active</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3>Key Information</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Public Key Algorithm:</strong> RSA (2048-bit)</p>
+                    <p><strong>Signature Algorithm:</strong> SHA-256 with RSA</p>
+                    <p><strong>Serial Number:</strong> 0x1a2b3c4d5e6f7a8b9c0d1e2f</p>
+                    <p><strong>Fingerprint (SHA-1):</strong> a1:b2:c3:d4:e5:f6:a7:b8:c9:d0:e1:f2:a3:b4:c5:d6:e7:f8:a9:b0</p>
+                </div>
+            </div>
+
+            <!-- Certificate Chain -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3>Certificate Chain</h3>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Certificate</th>
+                                <th>Type</th>
+                                <th>Valid From</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>example.com (Leaf Certificate)</td>
+                                <td>End Entity</td>
+                                <td>2025-01-15</td>
+                            </tr>
+                            <tr>
+                                <td>Intermediate CA Certificate</td>
+                                <td>Intermediate</td>
+                                <td>2020-01-01</td>
+                            </tr>
+                            <tr>
+                                <td>Root CA Certificate</td>
+                                <td>Root</td>
+                                <td>2015-01-01</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Certificate Preview -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3>Certificate Content (PEM Format)</h3>
+                </div>
+                <div class="card-body">
+                    <pre style="background-color: #f5f7fa; padding: 1rem; border-radius: 4px; overflow-x: auto; max-height: 250px; overflow-y: auto;">-----BEGIN CERTIFICATE-----
+MIIFWzCCBEOgAwIBAgIQAW1q/h0A+45gGTmFTqVIJjANBgkqhkiG9w0BAQsFADBH
+MQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExM
+QzEUMBIGA1UEAxMLR1RTIFMzIENBIDMwHhcNMjQwMTAxMTUwMDA0WhcNMjQwMzMx
+MTUwMDAzWjBbMQswCQYDVQQGEwJVUzELMAkGA1UECAgMQ0ExEjAQBgNVBAcMCVNh
+biBGcmFuMRcwFQYDVQQKDA5FeGFtcGxlIENvcnAuMRcwFQYDVQQDDA5leGFtcGxl
+LmNvbSBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKx8j9x/x/x0
+...
+[Content truncated for display - complete certificate would appear here]
+-----END CERTIFICATE-----</pre>
+                </div>
+            </div>
+
+            <!-- Security Verification -->
+            <div class="info-box mt-3">
+                <strong>Security Verification:</strong><br>
+                ✅ Certificate chain validated<br>
+                ✅ Public key verified<br>
+                ✅ Signature verified<br>
+                ✅ No revocation detected (OCSP: Good)<br>
+                ✅ Certificate matches domain name
+            </div>
+
+            <!-- Actions -->
+            <div class="button-group mt-4">
+                <a href="#" class="btn btn-primary">Download Certificate (PEM)</a>
+                <a href="#" class="btn btn-secondary">Download Certificate (DER)</a>
+                <a href="#" class="btn btn-info">Download Certificate Chain</a>
+            </div>
+
+            <div class="button-group right mt-2">
+                <a href="/my-certificates" class="btn btn-outline">Back to List</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>

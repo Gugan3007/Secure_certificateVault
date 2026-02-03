@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .role-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .role-applicant { background-color: #1976d2; color: #ffffff; }
+        .role-verifier { background-color: #7b1fa2; color: #ffffff; }
+        .role-admin { background-color: #c2185b; color: #ffffff; }
+
+        .access-denied {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #856404;
+        }
+
+        .role-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #008B8B;
+        }
+
+        .nav-item {
+            margin: 5px 0;
+        }
+
+        .nav-item a {
+            padding: 10px 15px;
+            display: inline-block;
+            background-color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #008B8B;
+            border: 1px solid #ddd;
+            transition: all 0.3s;
+        }
+
+        .nav-item a:hover {
+            background-color: #008B8B;
+            color: white;
+        }
+
+        .disabled-item {
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .disabled-item a {
+            pointer-events: none;
+            background-color: #f0f0f0;
+            color: #ccc;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            border-top: 3px solid #008B8B;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #008B8B;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            
+            <!-- APPLICANT Navigation -->
+            {% if session_data.role == 'applicant' %}
+            <li><a href="/certificate-types">📋 Certificate Types</a></li>
+            <li><a href="/request-certificate">📝 Request Certificate</a></li>
+            <li><a href="/my-certificates">📁 My Certificates</a></li>
+            {% endif %}
+            
+            <!-- VERIFIER Navigation -->
+            {% if session_data.role == 'verifier' %}
+            <li><a href="/verifier-tasks">✓ Verification Tasks</a></li>
+            {% endif %}
+            
+            <!-- ADMIN Navigation -->
+            {% if session_data.role == 'admin' %}
+            <li><a href="/admin-approvals">✓✓ Approvals</a></li>
+            <li><a href="/admin/user-management">👥 User Management</a></li>
+            <li><a href="/audit-logs">📊 Audit Logs</a></li>
+            {% endif %}
+            
+            <li style="float: right;"><a href="/logout" class="btn-outline">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="welcome-message">
+            <h2 style="color: white !important; border-color: rgba(255,255,255,0.3);">
+                Welcome, {{ session_data.full_name }}!
+                <span class="role-badge role-{% if session_data.role == 'admin' %}admin{% elif session_data.role == 'verifier' %}verifier{% else %}applicant{% endif %}">
+                    {{ session_data.role.upper() }}
+                </span>
+            </h2>
+            <p style="color: white !important; font-size: 1.05rem; margin-top: 1rem;">Email: <strong>{{ session_data.email }}</strong></p>
+            <p style="color: white !important; font-size: 1.05rem;">Authentication: <strong style="color: #90EE90;">✓ OTP Verified</strong></p>
+        </div>
+
+        <!-- ============================================
+             APPLICANT ROLE DASHBOARD
+             ============================================ -->
+        {% if session_data.role == 'applicant' %}
+        <div class="role-section">
+            <h3>📋 Applicant Dashboard</h3>
+            <p>Request digital certificates and monitor their verification and approval status.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ pending_requests|default(0) }}</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ verified_requests|default(0) }}</div>
+                    <div class="stat-label">Verified Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ approved_certificates|default(0) }}</div>
+                    <div class="stat-label">Active Certificates</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>📝 Submit Certificate Request</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Request a new digital certificate. Choose from various certificate types to meet your security needs.</p>
+                        <a href="/request-certificate" class="btn btn-primary">Request Now</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>📁 View My Certificates</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Track all your certificate requests and view their current status in the approval workflow.</p>
+                        <a href="/my-certificates" class="btn btn-primary">View Certificates</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>📋 Certificate Types</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Browse available certificate types and their specifications before submitting a request.</p>
+                        <a href="/certificate-types" class="btn btn-primary">View Types</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>❌ Restricted Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>As an Applicant, you cannot verify, approve, or view audit logs. These actions require higher privileges.</p>
+                        <span class="access-denied">Admin access only for verification and audit logs</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ============================================
+             VERIFIER ROLE DASHBOARD
+             ============================================ -->
+        {% if session_data.role == 'verifier' %}
+        <div class="role-section">
+            <h3>✓ Verifier Dashboard</h3>
+            <p>Review and verify certificate requests submitted by applicants.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ pending_count|default(0) }}</div>
+                    <div class="stat-label">Pending Review</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ verified_count|default(0) }}</div>
+                    <div class="stat-label">Verified</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ rejected_count|default(0) }}</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>✓ Verify Requests</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Review pending certificate requests and verify the applicant's information and documents.</p>
+                        <a href="/verifier-tasks" class="btn btn-primary">Review Requests</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>❌ Restricted Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>As a Verifier, you cannot request certificates, approve them, or view audit logs.</p>
+                        <span class="access-denied">These actions require Applicant or Admin role</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ============================================
+             ADMIN ROLE DASHBOARD
+             ============================================ -->
+        {% if session_data.role == 'admin' %}
+        <div class="role-section">
+            <h3>👨‍💼 Administrator Dashboard</h3>
+            <p>Manage the certificate authority, approve verified requests, and monitor system activity.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ verified_count|default(0) }}</div>
+                    <div class="stat-label">Pending Approvals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ approved_count|default(0) }}</div>
+                    <div class="stat-label">Active Certificates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_audit_logs|default(0) }}</div>
+                    <div class="stat-label">System Events</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>✓✓ Approve Certificates</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Review verified certificate requests and issue or reject digital certificates.</p>
+                        <a href="/admin-approvals" class="btn btn-primary">Manage Approvals</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>📊 View Audit Logs</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Monitor all system activities and authentication events for compliance and security.</p>
+                        <a href="/audit-logs" class="btn btn-primary">View Logs</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>🔑 Administrative Controls</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Full system access including certificate revocation, user management, and policy enforcement.</p>
+                        <span style="display: block; margin-top: 10px; color: #666; font-size: 0.9em;">
+                            ✓ Full audit trail visibility<br>
+                            ✓ Certificate lifecycle management<br>
+                            ✓ System-wide policy enforcement
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4>❌ Restricted Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>As an Admin, you cannot submit certificate requests or perform verification tasks.</p>
+                        <span class="access-denied">Certificate requests are Applicant-only actions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ============================================
+             SECURITY INFORMATION
+             ============================================ -->
+        <div class="role-section" style="background-color: #e8f5e9; border-left-color: #4caf50;">
+            <h3>🔒 Role-Based Access Control (RBAC)</h3>
+            <p>This system enforces strict authorization rules based on your role:</p>
+            
+            <table style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+                <tr style="background-color: #f0f0f0;">
+                    <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Action</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Applicant</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Verifier</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Admin</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Request Certificates</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #4caf50;">✓</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                </tr>
+                <tr style="background-color: #f9f9f9;">
+                    <td style="padding: 10px; border: 1px solid #ddd;">Verify Requests</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #4caf50;">✓</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Approve Certificates</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #4caf50;">✓</td>
+                </tr>
+                <tr style="background-color: #f9f9f9;">
+                    <td style="padding: 10px; border: 1px solid #ddd;">View Audit Logs</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #f44336;">✗</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: #4caf50;">✓</td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 15px; font-size: 0.9em; color: #555;">
+                <strong>Unauthorized access attempts are logged and monitored.</strong> 
+                The system enforces both UI-level and backend-level access control for maximum security.
+            </p>
+        </div>
+
+        <!-- ============================================
+             MFA SECURITY SETTINGS
+             ============================================ -->
+        <div class="role-section" style="background-color: #e3f2fd; border-left-color: #1976d2;">
+            <h3>🔐 Two-Factor Authentication (MFA)</h3>
+            <p>Enhance your account security with authenticator app-based 2FA.</p>
+            
+            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <div id="mfa-status" style="padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                    <span id="mfa-status-text">Loading...</span>
+                </div>
+                <a href="/mfa/setup" class="btn btn-primary btn-small" id="mfa-setup-btn" style="display: none;">
+                    🔐 Setup MFA
+                </a>
+                <button onclick="disableMFA()" class="btn btn-outline btn-small" id="mfa-disable-btn" style="display: none;">
+                    Disable MFA
+                </button>
+            </div>
+            
+            <p style="margin-top: 1rem; font-size: 0.9em; color: #555;">
+                MFA adds an extra layer of security by requiring a code from your authenticator app (Google Authenticator, Authy, etc.) when logging in.
+            </p>
+        </div>
+
+        <script>
+            // Fetch MFA status on page load
+            fetch('/mfa/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('mfa-status');
+                    const statusText = document.getElementById('mfa-status-text');
+                    const setupBtn = document.getElementById('mfa-setup-btn');
+                    const disableBtn = document.getElementById('mfa-disable-btn');
+                    
+                    if (data.mfa_enabled) {
+                        statusDiv.style.backgroundColor = '#e8f5e9';
+                        statusDiv.style.color = '#2e7d32';
+                        statusText.textContent = '✅ MFA Enabled (Authenticator App)';
+                        disableBtn.style.display = 'inline-block';
+                    } else {
+                        statusDiv.style.backgroundColor = '#fff3e0';
+                        statusDiv.style.color = '#e65100';
+                        statusText.textContent = '⚠️ MFA Not Enabled';
+                        setupBtn.style.display = 'inline-block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('mfa-status-text').textContent = 'Error loading status';
+                });
+            
+            function disableMFA() {
+                const code = prompt('Enter your authenticator code to disable MFA:');
+                if (!code) return;
+                
+                const formData = new FormData();
+                formData.append('code', code);
+                
+                fetch('/mfa/disable', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('❌ ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        </script>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h4>🔍 View Certificate Types</h4>
+                        <p>Browse available certificate types and their requirements.</p>
+                        <a href="/certificate-types" class="btn btn-primary btn-small">View Types</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h4>📂 My Certificates</h4>
+                        <p>View all your issued certificates and download them as needed.</p>
+                        <a href="/my-certificates" class="btn btn-primary btn-small">View Certs</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VERIFIER SECTION (Hidden for Applicant) -->
+        <div class="dashboard-section hidden" id="verifier-section">
+            <h3>✅ Verification Tasks</h3>
+            <p class="text-muted">Review pending certificate requests and verify applicant information.</p>
+            
+            <a href="/verifier-tasks" class="btn btn-secondary">View Pending Requests</a>
+        </div>
+
+        <!-- ADMIN SECTION (Hidden for Applicant) -->
+        <div class="dashboard-section hidden" id="admin-section">
+            <h3>⚙️ Administration</h3>
+            <p class="text-muted">Manage system configuration, approvals, and audit logs.</p>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-body">
+                        <h4>✔️ Certificate Approvals</h4>
+                        <p>Review and approve verified certificate requests.</p>
+                        <a href="/admin-approvals" class="btn btn-secondary btn-small">View Approvals</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h4>📊 Audit Logs</h4>
+                        <p>View comprehensive system audit trail and user activities.</p>
+                        <a href="/audit-logs" class="btn btn-secondary btn-small">View Logs</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.9;">
+            Role: <strong>{{ session_data.role|upper }}</strong> | Session: <strong>Active</strong> | OTP: <strong>Verified</strong>
+        </p>
+    </footer>
+</body>
+</html>

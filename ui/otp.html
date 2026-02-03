@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            background: linear-gradient(-45deg, #1a2332, #2c5364, #0f4c75, #3282b8);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.08) 2px, transparent 2px),
+                radial-gradient(circle at 90% 40%, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 200px 200px, 300px 300px, 250px 250px, 350px 350px;
+            animation: particleFloat 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100px); }
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+
+        footer {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+
+        .timer-display {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .timer-warning {
+            color: #d9534f;
+        }
+        
+        .timer-danger {
+            color: #fff;
+            background-color: #d9534f;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .otp-input {
+            text-align: center;
+            font-size: 2rem;
+            letter-spacing: 12px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            tracking: 8px;
+        }
+        
+        .resend-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .resend-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .otp-status {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+        
+        .otp-status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .otp-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .attempts-counter {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container" style="max-width: 550px; margin: 3rem auto; padding: 3rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="border: none; margin: 0;">Two-Factor Authentication</h2>
+                </div>
+                <div class="card-body">
+                    {% if mfa_type == 'totp' %}
+                    <!-- TOTP Authenticator App Mode -->
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <span style="font-size: 3rem;">📱</span>
+                        <p class="text-center" style="margin-top: 0.5rem;">Enter the 6-digit code from your <strong>authenticator app</strong>.</p>
+                        <p class="text-muted" style="font-size: 0.9rem;">Codes refresh every 30 seconds</p>
+                    </div>
+                    {% else %}
+                    <!-- Email OTP Mode (Default) -->
+                    <p class="text-center">An OTP (One-Time Password) has been sent to your registered email address.</p>
+                    {% endif %}
+                    
+                    <form id="otpForm" action="/otp" method="POST">
+                        <div class="form-group">
+                            {% if mfa_type == 'totp' %}
+                            <label for="otp">Enter Authenticator Code (6 digits) *</label>
+                            {% else %}
+                            <label for="otp">Enter OTP (6 digits) *</label>
+                            {% endif %}
+                            <input type="text" 
+                                   id="otp" 
+                                   name="otp" 
+                                   class="otp-input"
+                                   placeholder="000000" 
+                                   maxlength="6" 
+                                   inputmode="numeric"
+                                   pattern="[0-9]{6}"
+                                   required 
+                                   autocomplete="off">
+                        </div>
+
+                        {% if mfa_type == 'totp' %}
+                        <!-- TOTP Mode - No timer needed, codes auto-refresh -->
+                        <div class="form-group" style="text-align: center;">
+                            <p class="text-muted" style="margin-bottom: 0.5rem;">
+                                🔄 Codes refresh every <strong>30 seconds</strong>
+                            </p>
+                        </div>
+                        {% else %}
+                        <!-- Email OTP Mode - Show countdown timer -->
+                        <div class="form-group" style="text-align: center;">
+                            <p class="text-muted" style="margin-bottom: 0.5rem;">
+                                Time remaining: <span class="timer-display" id="timerDisplay">5:00</span>
+                            </p>
+                            <p class="text-muted" style="margin: 0;">
+                                Attempts: <span class="attempts-counter" id="attemptsDisplay">5</span>
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">
+                            {% if mfa_type == 'totp' %}Verify Code{% else %}Verify OTP{% endif %}
+                        </button>
+                    </form>
+
+                    <!-- Status Messages -->
+                    {% if error %}
+                        <div class="otp-status error">
+                            ❌ {{ error }}
+                        </div>
+                    {% endif %}
+                    
+                    {% if success %}
+                        <div class="otp-status success">
+                            ✅ {{ success }}
+                        </div>
+                    {% endif %}
+
+                    {% if mfa_type != 'totp' %}
+                    <!-- Resend option only for Email OTP -->
+                    <div class="text-center mt-3">
+                        <p>Didn't receive the OTP?</p>
+                        <button type="button" 
+                                id="resendBtn" 
+                                class="btn btn-outline btn-small resend-btn">
+                            Resend OTP
+                        </button>
+                        <p class="text-muted" style="margin-top: 0.5rem; font-size: 0.9rem;">
+                            <span id="resendTimer"></span>
+                        </p>
+                    </div>
+                    {% else %}
+                    <!-- TOTP Help Info -->
+                    <div class="text-center mt-3">
+                        <p class="text-muted" style="font-size: 0.9rem;">
+                            💡 Open your authenticator app (Google Authenticator, Authy, etc.) to get your code.
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <div class="text-center mt-2">
+                        <a href="/login" style="color: var(--primary-color);">Back to Login</a>
+                    </div>
+                </div>
+            </div>
+
+            {% if mfa_type == 'totp' %}
+            <div class="info-box mt-3">
+                <strong>🔐 Authenticator App:</strong> Your code changes every 30 seconds. If the code doesn't work, wait for a new one in your authenticator app.
+            </div>
+            {% else %}
+            <div class="info-box mt-3">
+                <strong>🔒 Security Notice:</strong> Never share your OTP with anyone. Our support staff will never ask for your OTP.
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // MFA Type from server
+        const mfaType = '{{ mfa_type | default("email_otp") }}';
+        
+        // Configuration
+        const OTP_TIMEOUT = 5 * 60; // 5 minutes in seconds
+        const RESEND_COOLDOWN = 30; // 30 seconds before can resend
+        const MAX_ATTEMPTS = 5;
+        
+        let timerInterval = null;
+        let resendTimerInterval = null;
+        let sessionStartTime = null;
+        let attemptsMade = 0;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            sessionStartTime = Date.now();
+            initializeTimer();
+            setupEventListeners();
+            restrictOtpInput();
+        });
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // OTP form submission
+            document.getElementById('otpForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitOtp();
+            });
+            
+            // Resend button
+            document.getElementById('resendBtn').addEventListener('click', function() {
+                resendOtp();
+            });
+            
+            // Auto-format OTP input (only numbers)
+            document.getElementById('otp').addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length === 6) {
+                    document.getElementById('verifyBtn').focus();
+                }
+            });
+        }
+        
+        // Restrict OTP input to numbers only
+        function restrictOtpInput() {
+            const otpInput = document.getElementById('otp');
+            otpInput.addEventListener('keypress', function(e) {
+                if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // Initialize and manage countdown timer
+        function initializeTimer() {
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+        
+        // Update timer display
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const remaining = Math.max(0, OTP_TIMEOUT - elapsed);
+            
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            const timerElement = document.getElementById('timerDisplay');
+            timerElement.textContent = display;
+            
+            // Update styling based on time remaining
+            if (remaining <= 60) {
+                timerElement.classList.add('timer-danger');
+                timerElement.classList.remove('timer-warning');
+            } else if (remaining <= 120) {
+                timerElement.classList.add('timer-warning');
+                timerElement.classList.remove('timer-danger');
+            }
+            
+            // Auto-expire OTP if time runs out
+            if (remaining === 0) {
+                clearInterval(timerInterval);
+                document.getElementById('otpForm').style.opacity = '0.5';
+                document.getElementById('verifyBtn').disabled = true;
+                document.getElementById('otp').disabled = true;
+                showError('OTP has expired. Please click "Resend OTP" to get a new code.');
+            }
+        }
+        
+        // Submit OTP verification
+        function submitOtp() {
+            const otpInput = document.getElementById('otp').value;
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            if (!otpInput || otpInput.length !== 6) {
+                showError('Please enter a valid 6-digit OTP');
+                return;
+            }
+            
+            // Show loading state
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            
+            // Make AJAX call instead of direct form submission
+            fetch('/otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'otp=' + encodeURIComponent(otpInput)
+            })
+            .then(response => {
+                // Check response status first
+                if (response.ok && response.redirected) {
+                    // Successful redirect to dashboard
+                    alert('✅ OTP verification successful! Redirecting to dashboard...');
+                    window.location.href = response.url;
+                    return null;
+                } else if (response.ok) {
+                    // Success but no redirect yet, return HTML
+                    return response.text().then(html => {
+                        if (html.includes('Dashboard') || html.includes('dashboard')) {
+                            alert('✅ OTP verification successful! Redirecting to dashboard...');
+                            window.location.href = '/dashboard';
+                        } else {
+                            // Still on OTP page, show any errors
+                            return html;
+                        }
+                    });
+                } else {
+                    // Error response (400, 401, 429, etc.)
+                    return response.text();
+                }
+            })
+            .then(html => {
+                if (!html) return; // Already redirected
+                
+                // OTP verification failed, show error
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify OTP';
+                
+                // Extract error message from response
+                const errorMatch = html.match(/<div[^>]*class="[^"]*error-box[^"]*"[^>]*>[\s\S]*?❌\s*([^<]+)<\/div>/) ||
+                                 html.match(/<div[^>]*class="[^"]*otp-status error[^"]*"[^>]*>[\s\S]*?❌\s*([^<]+)<\/div>/);
+                
+                if (errorMatch) {
+                    showError(errorMatch[1].trim());
+                } else {
+                    showError('OTP verification failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify OTP';
+                console.error('Error:', error);
+                showError('An error occurred. Please try again.');
+            });
+        }
+        
+        // Resend OTP
+        function resendOtp() {
+            const resendBtn = document.getElementById('resendBtn');
+            
+            if (resendBtn.disabled) {
+                return;
+            }
+            
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+            
+            // Create a form and submit to /otp with resend action
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/otp-resend';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'resend';
+            input.value = 'true';
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Show error message
+        function showError(message) {
+            // Check if error div exists, create if not
+            let errorDiv = document.querySelector('.otp-status.error');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'otp-status error';
+                const form = document.getElementById('otpForm');
+                form.parentNode.insertBefore(errorDiv, form.nextSibling);
+            }
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // Update attempts display
+        function updateAttempts(remaining) {
+            document.getElementById('attemptsDisplay').textContent = remaining;
+            if (remaining <= 1) {
+                document.getElementById('attemptsDisplay').parentElement.style.color = '#d9534f';
+            }
+        }
+        
+        // Update resend cooldown timer
+        function startResendCooldown() {
+            let countdown = RESEND_COOLDOWN;
+            const resendBtn = document.getElementById('resendBtn');
+            const resendTimer = document.getElementById('resendTimer');
+            
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Resend OTP';
+            
+            resendTimerInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    resendTimer.textContent = `You can resend in ${countdown}s`;
+                } else {
+                    clearInterval(resendTimerInterval);
+                    resendBtn.disabled = false;
+                    resendTimer.textContent = '';
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

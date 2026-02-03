@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Types - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/certificate-types" class="active">Certificates</a></li>
+            <li><a href="/my-certificates">My Certificates</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>Available Certificate Types</h2>
+            <p>Select a certificate type below to start your request. Each certificate type has specific requirements and use cases.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Certificate ID</th>
+                        <th>Certificate Name</th>
+                        <th>Description</th>
+                        <th>Validity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>CERT-001</td>
+                        <td>SSL/TLS Certificate</td>
+                        <td>Secure website communications and data encryption. Required for HTTPS connections.</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-002</td>
+                        <td>Code Signing Certificate</td>
+                        <td>Sign software code and executables to prove authenticity and prevent tampering.</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-003</td>
+                        <td>Extended Validation (EV) Certificate</td>
+                        <td>Premium validation certificate with full organization verification for maximum trust.</td>
+                        <td>2 Years</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-004</td>
+                        <td>Wildcard Certificate</td>
+                        <td>Secure all subdomains with a single certificate (*.example.com).</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-005</td>
+                        <td>Email Certificate (S/MIME)</td>
+                        <td>Sign and encrypt email communications for secure correspondence.</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-006</td>
+                        <td>Client Authentication Certificate</td>
+                        <td>Authenticate users and devices in multi-factor authentication systems.</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-007</td>
+                        <td>Organization Certificate</td>
+                        <td>Multi-domain certificate for organizations with multiple domain names.</td>
+                        <td>2 Years</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                    <tr>
+                        <td>CERT-008</td>
+                        <td>Document Signing Certificate</td>
+                        <td>Sign documents electronically with legal validity and tamper-evidence.</td>
+                        <td>1 Year</td>
+                        <td><a href="/request-certificate" class="btn btn-primary btn-small">Request</a></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box mt-3">
+                <strong>Certificate Request Process:</strong> Click "Request" next to your desired certificate type. You will need to provide specific information based on the certificate type and upload necessary verification documents.
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>

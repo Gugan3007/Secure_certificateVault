@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Certificate - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/certificate-types" class="active">Certificates</a></li>
+            <li><a href="/my-certificates">My Certificates</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container" style="max-width: 700px;">
+            <h2>Request New Certificate</h2>
+            <p class="text-muted">Complete the form below to submit a new certificate request. All fields marked with * are required.</p>
+
+            <form action="/request-certificate" method="POST">
+                <!-- Certificate Type -->
+                <div class="form-group">
+                    <label for="certificate_type">Certificate Type *</label>
+                    <select id="certificate_type" name="certificate_type" required>
+                        <option value="">-- Select Certificate Type --</option>
+                        <option value="SSL/TLS Certificate">SSL/TLS Certificate</option>
+                        <option value="Code Signing Certificate">Code Signing Certificate</option>
+                        <option value="Extended Validation (EV) Certificate">Extended Validation (EV) Certificate</option>
+                        <option value="Wildcard Certificate">Wildcard Certificate</option>
+                        <option value="Email Certificate (S/MIME)">Email Certificate (S/MIME)</option>
+                        <option value="Client Authentication Certificate">Client Authentication Certificate</option>
+                        <option value="Organization Certificate">Organization Certificate</option>
+                        <option value="Document Signing Certificate">Document Signing Certificate</option>
+                    </select>
+                </div>
+
+                <!-- Purpose of Certificate -->
+                <div class="form-group">
+                    <label for="purpose">Purpose of Certificate *</label>
+                    <textarea id="purpose" name="purpose" placeholder="Explain why you need this certificate and how it will be used..." required></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Submit Certificate Request</button>
+                </div>
+            </form>
+
+            <div class="warning-box mt-4">
+                <strong>Important:</strong> Your request will be reviewed by our verification team and then approved by an administrator. You will receive email notifications at each stage of the process.
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const certificateType = document.getElementById('certificate_type').value;
+            const purpose = document.getElementById('purpose').value;
+            
+            if (!certificateType) {
+                alert('❌ Please select a certificate type');
+                return;
+            }
+            if (!purpose.trim()) {
+                alert('❌ Please enter the purpose of the certificate');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            // Create FormData
+            const formData = new FormData(this);
+            
+            // Submit to backend
+            fetch('/request-certificate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                alert('✅ Certificate request submitted successfully!\n\nYour request is now pending verification.');
+                // Redirect to my certificates page
+                window.location.href = '/my-certificates';
+            })
+            .catch(error => {
+                alert('❌ Error: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
+        });
+    </script>
+</body>
+</html>

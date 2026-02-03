@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifier Tasks - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/verifier-tasks" class="active">Verification Tasks</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>Certificate Verification Tasks</h2>
+            <p class="text-muted">Review and verify pending certificate requests. Your verification is required before administrator approval.</p>
+
+            <!-- Statistics -->
+            <div class="grid-4 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--warning-color); margin: 0;">{{ pending_count }}</h4>
+                        <p class="text-muted">Pending Review</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--success-color); margin: 0;">{{ verified_count }}</h4>
+                        <p class="text-muted">Verified</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--danger-color); margin: 0;">{{ rejected_count }}</h4>
+                        <p class="text-muted">Rejected</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--info-color); margin: 0;">{{ total_processed }}</h4>
+                        <p class="text-muted">Total Processed</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="card mb-3">
+                <form method="GET" style="margin: 0;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="filter_status">Filter by Status</label>
+                            <select id="filter_status" name="status">
+                                <option value="">All Requests</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="verified">Verified</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter_type">Filter by Certificate Type</label>
+                            <select id="filter_type" name="type">
+                                <option value="">All Types</option>
+                                <option value="ssl">SSL/TLS</option>
+                                <option value="code">Code Signing</option>
+                                <option value="ev">Extended Validation</option>
+                                <option value="wildcard">Wildcard</option>
+                            </select>
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <button type="submit" class="btn btn-secondary btn-small">Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pending Verification Requests -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Applicant</th>
+                        <th>Certificate Type</th>
+                        <th>Submitted Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if requests %}
+                        {% for req in requests %}
+                        <tr>
+                            <td>{{ req._id }}</td>
+                            <td>{{ req.applicant_name }}</td>
+                            <td>{{ req.certificate_type }}</td>
+                            <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else 'N/A' }}</td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                    <span class="table-status status-pending">Pending</span>
+                                {% elif req.status == 'verified' %}
+                                    <span class="table-status status-verified">Verified</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    {% if req.status == 'pending' %}
+                                        <button onclick="verifyRequest('{{ req._id | b64encode }}')" class="btn btn-success btn-small">✓ Verify</button>
+                                        <button onclick="openRejectModal('{{ req._id | b64encode }}')" class="btn btn-danger btn-small">✗ Reject</button>
+                                    {% elif req.status == 'verified' %}
+                                        <span class="text-muted">✓ Verified</span>
+                                    {% elif req.status == 'rejected' %}
+                                        <span class="text-muted">✗ Rejected</span>
+                                    {% else %}
+                                        <span class="text-muted">Processed</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                <p class="text-muted">No pending requests to verify</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <!-- Verification Criteria -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>Verification Checklist</h3>
+                </div>
+                <div class="card-body">
+                    <p>When reviewing a certificate request, verify the following:</p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Applicant identity confirmed</li>
+                        <li>Organization details are accurate</li>
+                        <li>Domain ownership properly verified</li>
+                        <li>Supporting documents are authentic</li>
+                        <li>No duplicate or conflicting requests</li>
+                        <li>Compliance with security policies</li>
+                        <li>All required information is complete</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <!-- Rejection Modal -->
+    <div id="rejectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0; color: #dc3545;">❌ Reject Certificate Request</h3>
+            <p class="text-muted">Please provide a reason for rejecting this certificate request:</p>
+            <div class="form-group">
+                <label for="rejectReason">Rejection Reason <span style="color: red;">*</span></label>
+                <textarea id="rejectReason" rows="4" placeholder="Enter detailed reason for rejection..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem;">
+                <button onclick="closeRejectModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitRejection()" class="btn btn-danger">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRejectId = null;
+
+        function openRejectModal(encodedId) {
+            currentRejectId = encodedId;
+            document.getElementById('rejectModal').style.display = 'flex';
+            document.getElementById('rejectReason').value = '';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+            currentRejectId = null;
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+
+            fetch(`/reject-certificate-verifier/${currentRejectId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Certificate rejected successfully!');
+                    closeRejectModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to reject certificate'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+
+        function verifyRequest(encodedId) {
+            if (confirm('Are you sure you want to VERIFY this certificate request?\n\nThis will mark the request as verified and forward it to the Admin for final approval.')) {
+                fetch(`/verify-certificate/${encodedId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Certificate verified successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to verify certificate'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('rejectModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    </script>
+</body>
+</html>

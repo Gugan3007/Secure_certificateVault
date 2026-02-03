@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Approvals - Secure Certificate Request & Approval System</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+            <div class="text-right">
+                <a href="/logout" class="btn btn-outline" style="border-color: white; color: white;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/admin-approvals" class="active">Approvals</a></li>
+            <li><a href="/admin/user-management">User Management</a></li>
+            <li><a href="/audit-logs">Audit Logs</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="container">
+            <h2>Certificate Approval Management</h2>
+            <p class="text-muted">Review verified certificate requests and approve or reject them. Only administrators can issue final approvals.</p>
+
+            <!-- Statistics -->
+            <div class="grid-4 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--warning-color); margin: 0;">{{ awaiting_approval }}</h4>
+                        <p class="text-muted">Awaiting Approval</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--success-color); margin: 0;">{{ approved_count }}</h4>
+                        <p class="text-muted">Approved</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--danger-color); margin: 0;">{{ rejected_count }}</h4>
+                        <p class="text-muted">Rejected</p>
+                    </div>
+                </div>
+
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 style="font-size: 1.8rem; color: var(--info-color); margin: 0;">{{ total_processed }}</h4>
+                        <p class="text-muted">Total Processed</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search -->
+            <div class="card mb-3">
+                <form method="GET" style="margin: 0;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="filter_status">Filter by Status</label>
+                            <select id="filter_status" name="status">
+                                <option value="">All Requests</option>
+                                <option value="verified">Verified (Ready for Approval)</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="issued">Issued</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="search">Search by Applicant or Request ID</label>
+                            <input type="text" id="search" name="search" placeholder="Search...">
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <button type="submit" class="btn btn-secondary btn-small">Search</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pending Approvals -->
+            <h3 class="mt-4">Pending Administrator Approval</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Applicant</th>
+                        <th>Certificate Type</th>
+                        <th>Status</th>
+                        <th>Submission Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if requests %}
+                        {% for req in requests %}
+                        <tr>
+                            <td>{{ req._id }}</td>
+                            <td>{{ req.applicant_name }}</td>
+                            <td>{{ req.certificate_type }}</td>
+                            <td><span class="table-status status-verified">Verified</span></td>
+                            <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else 'N/A' }}</td>
+                            <td>
+                                <div class="table-actions">
+                                    <button onclick="approveRequest('{{ req._id | b64encode }}')" class="btn btn-success btn-small">✓ Approve</button>
+                                    <button onclick="openRejectModal('{{ req._id | b64encode }}')" class="btn btn-danger btn-small">✗ Reject</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                <p class="text-muted">No pending requests awaiting approval</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Approved Certificates -->
+            <h3 class="mt-4">Recently Approved Certificates</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Applicant</th>
+                        <th>Certificate Type</th>
+                        <th>Status</th>
+                        <th>Approved By</th>
+                        <th>Approval Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-2026-006</td>
+                        <td>Emily Davis</td>
+                        <td>SSL/TLS Certificate</td>
+                        <td><span class="table-status status-approved">Approved</span></td>
+                        <td>A. Thompson</td>
+                        <td>2026-01-23</td>
+                        <td><a href="#" class="btn btn-info btn-small">View</a></td>
+                    </tr>
+                    <tr>
+                        <td>REQ-2026-007</td>
+                        <td>David Anderson</td>
+                        <td>Extended Validation (EV)</td>
+                        <td><span class="table-status status-approved">Approved</span></td>
+                        <td>A. Thompson</td>
+                        <td>2026-01-22</td>
+                        <td><a href="#" class="btn btn-info btn-small">View</a></td>
+                    </tr>
+                    <tr>
+                        <td>REQ-2026-008</td>
+                        <td>Lisa Martinez</td>
+                        <td>Client Authentication</td>
+                        <td><span class="table-status status-approved">Approved</span></td>
+                        <td>B. Garcia</td>
+                        <td>2026-01-21</td>
+                        <td><a href="#" class="btn btn-info btn-small">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Approval Policy -->
+            <div class="warning-box mt-4">
+                <strong>Important Approval Guidelines:</strong><br>
+                • Only approve requests that have been verified by a qualified verifier<br>
+                • Review all supporting documentation before approval<br>
+                • Reject requests with incomplete or suspicious information<br>
+                • Maintain detailed notes for audit trail purposes<br>
+                • Follow principle of least privilege in approval authority
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+
+    <!-- Rejection Modal -->
+    <div id="rejectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0; color: #dc3545;">❌ Reject Certificate Request</h3>
+            <p class="text-muted">Please provide a reason for rejecting this verified certificate:</p>
+            <div class="form-group">
+                <label for="rejectReason">Rejection Reason <span style="color: red;">*</span></label>
+                <textarea id="rejectReason" rows="4" placeholder="Enter detailed reason for rejection..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem;">
+                <button onclick="closeRejectModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitRejection()" class="btn btn-danger">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRejectId = null;
+
+        function openRejectModal(encodedId) {
+            currentRejectId = encodedId;
+            document.getElementById('rejectModal').style.display = 'flex';
+            document.getElementById('rejectReason').value = '';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+            currentRejectId = null;
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+
+            fetch(`/reject-certificate-admin/${currentRejectId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Certificate rejected successfully!');
+                    closeRejectModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to reject certificate'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+
+        // ============================================
+        // CLIENT-SIDE ENCRYPTION FUNCTIONS (AES-256-GCM)
+        // Using Web Crypto API
+        // ============================================
+
+        // Generate a random AES-256 key
+        async function generateAESKey() {
+            return await window.crypto.subtle.generateKey(
+                {
+                    name: "AES-GCM",
+                    length: 256
+                },
+                true, // extractable
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        // Export key to base64
+        async function exportKey(key) {
+            const exported = await window.crypto.subtle.exportKey("raw", key);
+            return arrayBufferToBase64(exported);
+        }
+
+        // Convert ArrayBuffer to Base64
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        // Encrypt content using AES-256-GCM
+        async function encryptContent(content, key) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(content);
+            
+            // Generate random IV (12 bytes for GCM)
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            
+            const encrypted = await window.crypto.subtle.encrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                key,
+                data
+            );
+            
+            return {
+                encrypted: arrayBufferToBase64(encrypted),
+                iv: arrayBufferToBase64(iv)
+            };
+        }
+
+        async function approveRequest(encodedId) {
+            if (!confirm('Are you sure you want to APPROVE this certificate request?\n\nThis will:\n• Generate the certificate\n• Encrypt with AES-256-GCM (CLIENT-SIDE)\n• Digitally sign with RSA-PSS\n• Issue to the applicant')) {
+                return;
+            }
+
+            try {
+                // Show loading
+                document.body.style.cursor = 'wait';
+
+                // Step 1: Get certificate content from server
+                console.log('🔒 CLIENT-SIDE ENCRYPTION STARTING...');
+                console.log('Step 1: Fetching certificate content from server...');
+                
+                const contentResponse = await fetch(`/get-certificate-for-encryption/${encodedId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const contentData = await contentResponse.json();
+                if (!contentData.success) {
+                    throw new Error(contentData.error || 'Failed to get certificate content');
+                }
+
+                const certificateContent = contentData.certificate_content;
+                const signature = contentData.signature;
+                
+                console.log('✅ Certificate content received:', certificateContent.length, 'characters');
+                console.log('✅ Signature received:', signature.substring(0, 40) + '...');
+
+                // Step 2: Generate AES-256 key in browser
+                console.log('Step 2: Generating AES-256 key in browser...');
+                const aesKey = await generateAESKey();
+                const exportedKey = await exportKey(aesKey);
+                console.log('✅ AES-256 Key generated (Browser):', exportedKey.substring(0, 20) + '...');
+
+                // Step 3: Encrypt certificate content in browser
+                console.log('Step 3: Encrypting certificate content with AES-256-GCM...');
+                const encryptionResult = await encryptContent(certificateContent, aesKey);
+                console.log('✅ Encryption complete!');
+                console.log('   IV:', encryptionResult.iv.substring(0, 20) + '...');
+                console.log('   Encrypted content:', encryptionResult.encrypted.substring(0, 40) + '...');
+
+                // Step 4: Send encrypted data to server
+                console.log('Step 4: Sending encrypted data to server for storage...');
+                
+                const approveResponse = await fetch(`/approve-certificate/${encodedId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        encrypted_content: encryptionResult.encrypted,
+                        encryption_iv: encryptionResult.iv,
+                        encryption_key: exportedKey,
+                        signature: signature
+                    })
+                });
+
+                const approveData = await approveResponse.json();
+                
+                document.body.style.cursor = 'default';
+
+                if (approveData.success) {
+                    console.log('✅ Certificate approved with CLIENT-SIDE encryption!');
+                    alert('✅ Certificate approved with CLIENT-SIDE AES-256-GCM encryption!\n\n🔒 Encryption performed in your browser\n📝 Signature verified on server');
+                    location.reload();
+                } else {
+                    throw new Error(approveData.error || 'Failed to approve certificate');
+                }
+            } catch (error) {
+                document.body.style.cursor = 'default';
+                console.error('❌ Client-side encryption error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('rejectModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    </script>
+</body>
+</html>

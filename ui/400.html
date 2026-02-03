@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>400 Bad Request - Secure Certificate Authority</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 5rem auto;
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .error-icon {
+            font-size: 6rem;
+            margin-bottom: 1rem;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .error-code {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #e74c3c;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .error-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin: 1rem 0;
+        }
+        
+        .error-message {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .error-details {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        
+        .error-details h4 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+        
+        .error-details ul {
+            color: #7f8c8d;
+            padding-left: 1.5rem;
+        }
+        
+        .error-details li {
+            margin: 0.5rem 0;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <h1 class="error-code">400</h1>
+            <h2 class="error-title">Bad Request</h2>
+            
+            <div class="error-message">
+                <strong>{{ message if message else 'The request could not be understood by the server.' }}</strong>
+            </div>
+            
+            <div class="error-details">
+                <h4>🔍 What might have happened:</h4>
+                <ul>
+                    <li>The certificate ID format is invalid or corrupted</li>
+                    <li>The URL was manually modified or incomplete</li>
+                    <li>The link you followed may be broken</li>
+                    <li>Special characters in the request are not properly encoded</li>
+                </ul>
+            </div>
+            
+            <div class="btn-group">
+                <a href="/dashboard" class="btn btn-primary">🏠 Go to Dashboard</a>
+                <a href="/my-certificates" class="btn btn-secondary">📜 My Certificates</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>
