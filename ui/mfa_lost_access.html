@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost Authenticator - Secure Certificate Authority</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            background: linear-gradient(-45deg, #1a2332, #2c5364, #0f4c75, #3282b8);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.08) 2px, transparent 2px),
+                radial-gradient(circle at 90% 40%, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 200px 200px, 300px 300px, 250px 250px, 350px 350px;
+            animation: particleFloat 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes particleFloat {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100px); }
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+
+        footer {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 35, 50, 0.8) !important;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border-left: 4px solid #ff9800;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box h4 {
+            color: #e65100;
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+
+        .warning-box p {
+            color: #666;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .info-steps {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-steps h4 {
+            color: #1565c0;
+            margin: 0 0 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-steps ol {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .info-steps li {
+            margin: 0.3rem 0;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff9800;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+        }
+
+        .error-message {
+            background: #ffebee;
+            border: 1px solid #ef5350;
+            color: #c62828;
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #1976d2;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .icon-header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .icon-header span {
+            font-size: 3rem;
+        }
+
+        .icon-header h2 {
+            margin: 0.5rem 0;
+            color: #333;
+        }
+
+        .icon-header p {
+            color: #666;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div>
+                <h1 class="header-title">🔐 Certificate Authority</h1>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container" style="max-width: 500px; margin: 3rem auto; padding: 2rem;">
+            <div class="card">
+                <div class="card-body">
+                    <div class="icon-header">
+                        <span>📱❌</span>
+                        <h2>Lost Authenticator Access?</h2>
+                        <p>Verify your identity to reset MFA</p>
+                    </div>
+
+                    <div class="warning-box">
+                        <h4>⚠️ Security Warning</h4>
+                        <p>This will reset your authenticator app setup. You'll need to scan a new QR code with your device.</p>
+                    </div>
+
+                    <div class="info-steps">
+                        <h4>📋 What happens next:</h4>
+                        <ol>
+                            <li>Enter your password to verify your identity</li>
+                            <li>Your old authenticator will be deactivated</li>
+                            <li>You'll set up a new authenticator with a fresh QR code</li>
+                        </ol>
+                    </div>
+
+                    {% if error %}
+                    <div class="error-message">
+                        ❌ {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form action="/mfa/lost-access" method="POST">
+                        <div class="form-group">
+                            <label for="password">Enter your account password *</label>
+                            <input type="password" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Your account password"
+                                   required 
+                                   autocomplete="current-password">
+                        </div>
+
+                        <button type="submit" class="btn-warning">
+                            🔄 Verify & Reset Authenticator
+                        </button>
+                    </form>
+
+                    <a href="/otp" class="back-link">← Back to verification</a>
+                    <a href="/login" class="back-link" style="margin-top: 0.5rem;">← Back to Login</a>
+                </div>
+            </div>
+
+            <div class="info-box mt-3" style="background: rgba(255,255,255,0.9); padding: 1rem; border-radius: 8px;">
+                <strong>💡 Tip:</strong> After resetting, make sure to save backup codes or use a cloud-synced authenticator app like Authy or Microsoft Authenticator to prevent future lockouts.
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Secure Certificate Authority. All rights reserved.</p>
+    </footer>
+</body>
+</html>

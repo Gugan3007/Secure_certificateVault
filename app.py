@@ -2064,6 +2064,59 @@ def mfa_status():
     })
 
 
+@app.route('/mfa/lost-access', methods=['GET', 'POST'])
+@login_required
+def mfa_lost_access():
+    """
+    Lost Authenticator Recovery - Allow user to reset MFA by verifying password
+    User must be logged in (password verified) but not necessarily OTP verified
+    """
+    user = get_user_by_id(session['user_id'])
+    if not user:
+        return redirect(url_for('login'))
+    
+    # Only allow access for users with MFA enabled
+    if not user.get('mfa_enabled'):
+        return redirect(url_for('mfa_setup'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        
+        if not password:
+            return render_template('mfa_lost_access.html', error='Password is required')
+        
+        # Verify password using existing helper
+        if verify_password(password, user['password_hash'], user['password_salt']):
+            # Password verified - log the recovery attempt
+            print(f"\n{'='*60}")
+            print(f"🔓 MFA RECOVERY INITIATED")
+            print(f"{'='*60}")
+            print(f"Email: {user['email']}")
+            print(f"User verified password for MFA reset")
+            print(f"{'='*60}\n")
+            
+            create_audit_log(
+                session['user_id'],
+                'mfa_recovery_initiated',
+                status='success',
+                details='User verified password to reset authenticator'
+            )
+            
+            # Redirect to MFA setup to configure new authenticator
+            return redirect(url_for('mfa_setup'))
+        else:
+            # Invalid password
+            create_audit_log(
+                session['user_id'],
+                'mfa_recovery_failed',
+                status='failure',
+                details='Invalid password during MFA recovery'
+            )
+            return render_template('mfa_lost_access.html', error='Invalid password. Please try again.')
+    
+    return render_template('mfa_lost_access.html')
+
+
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     """Forgot Password - Request OTP"""
