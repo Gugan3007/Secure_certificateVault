@@ -1335,10 +1335,14 @@ def otp_verified_required(f):
         if not session.get('otp_verified'):
             return redirect(url_for('verify_otp'))
         
-        # Validate that the OTP session is still active and not expired
-        if not validate_session_timeout(session['user_id']):
-            session.clear()
-            return redirect(url_for('login'))
+        # For TOTP users, session validity is managed by Flask's session cookie lifetime
+        # Only check database timeout for email OTP users (who have otp_sessions entries)
+        mfa_type = session.get('mfa_type')
+        if mfa_type != 'totp':
+            # Validate that the OTP session is still active and not expired (email OTP only)
+            if not validate_session_timeout(session['user_id']):
+                session.clear()
+                return redirect(url_for('login'))
         
         return f(*args, **kwargs)
     return decorated_function
