@@ -1696,7 +1696,7 @@ def login():
             
             # Check if MFA (TOTP) is enabled for this user
             if user.get('mfa_enabled') and user.get('mfa_secret'):
-                # MFA enabled - use TOTP authenticator app
+                # MFA enabled - redirect to OTP page for TOTP verification
                 session['mfa_type'] = 'totp'
                 
                 print(f"\n{'='*60}")
@@ -1708,26 +1708,18 @@ def login():
                 print(f"{'='*60}\n")
                 
                 create_audit_log(str(user['_id']), 'login_success', details='TOTP MFA required')
+                return redirect(url_for('verify_otp'))
             else:
-                # No MFA - use traditional email OTP (printed to console)
-                session['mfa_type'] = 'email_otp'
-                
-                otp_code = generate_otp()
-                otp_expiry = datetime.utcnow() + timedelta(minutes=5)
-                
-                create_otp_session(user['_id'], otp_code, otp_expiry)
-                
+                # MFA NOT enabled - force user to set up TOTP (no email OTP fallback)
                 print(f"\n{'='*60}")
-                print(f"📱 OTP VERIFICATION REQUIRED")
+                print(f"⚠️  MFA SETUP REQUIRED")
                 print(f"{'='*60}")
                 print(f"Email: {email}")
-                print(f"OTP Code: {otp_code}")
-                print(f"Valid for: 5 minutes")
+                print(f"User must configure authenticator app before proceeding")
                 print(f"{'='*60}\n")
                 
-                create_audit_log(str(user['_id']), 'login_success', details='Email OTP sent')
-            
-            return redirect(url_for('verify_otp'))
+                create_audit_log(str(user['_id']), 'login_success', details='MFA setup required - redirecting to setup')
+                return redirect(url_for('mfa_setup'))
         
         except Exception as e:
             print(f"❌ Login Error: {str(e)}")
@@ -1910,7 +1902,7 @@ def logout():
 # ============================================
 
 @app.route('/mfa/setup', methods=['GET', 'POST'])
-@otp_verified_required
+@login_required
 def mfa_setup():
     """
     MFA Setup - Generate TOTP secret and QR code
@@ -1976,19 +1968,27 @@ def mfa_verify():
         # Enable MFA for user
         enable_user_mfa(session['user_id'])
         
+        # Mark user as fully verified (OTP verified) so they can access dashboard
+        session['otp_verified'] = True
+        session.permanent = True
+        
+        # Update last login timestamp
+        update_user_last_login(session['user_id'])
+        
         print(f"\n{'='*60}")
         print(f"✅ MFA ENABLED SUCCESSFULLY")
         print(f"{'='*60}")
         print(f"Email: {user['email']}")
         print(f"MFA Type: TOTP (Authenticator App)")
+        print(f"User is now fully authenticated")
         print(f"{'='*60}\n")
         
         create_audit_log(session['user_id'], 'mfa_enabled', status='success', 
-                        details='TOTP authenticator app configured')
+                        details='TOTP authenticator app configured - user fully authenticated')
         
         return jsonify({
             'success': True, 
-            'message': 'MFA enabled successfully! You will now use your authenticator app for login.'
+            'message': 'MFA enabled successfully! Redirecting to dashboard...'
         })
     else:
         create_audit_log(session['user_id'], 'mfa_verify_failed', status='failure',
